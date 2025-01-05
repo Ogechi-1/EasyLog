@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temperature Chart</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "San Francisco", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f7;
+            color: #1d1d1f;
+            line-height: 1.6;
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #d2d2d7;
+        }
+
+        .nav-container a {
+            color: #1d1d1f;
+            text-decoration: none;
+            margin: 0 15px;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-container a:hover {
+            color: #0071e3;
+        }
+
+        .nav-container a.active {
+            color: #0071e3;
+            font-weight: 600;
+        }
+
+        .container {
+            width: 80%;
+            max-width: 1400px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            text-align: center;
+            font-weight: 600;
+            margin-bottom: 30px;
+        }
+
+        .chart-container {
+            background-color: #ffffff;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            height: 500px;
+            position: relative;
+        }
+
+        canvas {
+            display: block;
+            max-width: 100%;
+            height: 100% !important;
+        }
+
+        .time-range {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .time-range button {
+            padding: 8px 16px;
+            border: 1px solid #d2d2d7;
+            border-radius: 8px;
+            background: #f5f5f7;
+            color: #1d1d1f;
+            cursor: pointer;
+            transition: background 0.3s, border-color 0.3s;
+            font-weight: 500;
+        }
+
+        .time-range button:hover {
+            background: #e0e0e0;
+        }
+
+        .time-range button.active {
+            background: #0071e3;
+            color: #ffffff;
+            border-color: #0071e3;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                width: 95%;
+                padding: 20px 10px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .chart-container {
+                padding: 15px;
+                height: 400px;
+            }
+
+            .time-range button {
+                font-size: 0.9rem;
+                padding: 6px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="nav-container">
+        <a href="index.html">Real-time</a>
+        <a href="chart.html" class="active">Chart</a>
+        <a href="history.html">History</a>
+    </div>
+
+    <div class="container">
+        <h1>Temperature Chart</h1>
+        
+        <div class="chart-container">
+            <canvas id="sensorChart"></canvas>
+        </div>
+        <div class="time-range">
+            <button class="active" data-range="60">1H</button>
+            <button data-range="360">6H</button>
+            <button data-range="1440">24H</button>
+            <button data-range="10080">7D</button>
+        </div>
+    </div>
+    
+    <script>
+        let chart;
+        let maxDataPoints = 60; // Default for 1-hour view
+
+        function initChart() {
+            const ctx = document.getElementById('sensorChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Temperature',
+                        data: [],
+                        borderColor: '#0071e3',
+                        backgroundColor: 'rgba(0, 113, 227, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 0,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            mode: 'nearest',
+                            intersect: false,
+                            backgroundColor: '#333',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            padding: 10,
+                            displayColors: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '°C';
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                maxTicksLimit: 10
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateData() {
+            fetch('/api/sensor-data')
+                .then(response => response.json())
+                .then(data => {
+                    const timestamp = new Date().toLocaleTimeString();
+                    const temperature = data.temperature;
+                    
+                    chart.data.labels.push(timestamp);
+                    chart.data.datasets[0].data.push(temperature);
+                    
+                    if (chart.data.labels.length > maxDataPoints) {
+                        chart.data.labels.shift();
+                        chart.data.datasets[0].data.shift();
+                    }
+
+                    // Dynamically adjust the Y-axis scale
+                    chart.options.scales.y.min = Math.min(...chart.data.datasets[0].data) - 2;
+                    chart.options.scales.y.max = Math.max(...chart.data.datasets[0].data) + 2;
+
+                    chart.update();
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                });
+        }
+
+        // Initialize the chart and start updates
+        initChart();
+        updateData();
+        const updateInterval = setInterval(updateData, 1000);
+
+        // Handle time range button clicks
+        document.querySelectorAll('.time-range button').forEach(button => {
+            button.addEventListener('click', function() {
+                document.querySelectorAll('.time-range button').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                maxDataPoints = parseInt(this.getAttribute('data-range'), 10);
+                chart.data.labels = [];
+                chart.data.datasets[0].data = [];
+                chart.update();
+            });
+        });
+
+        window.addEventListener('beforeunload', () => {
+            clearInterval(updateInterval);
+        });
+    </script>
+</body>
+</html>

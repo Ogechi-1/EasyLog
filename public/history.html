@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temperature History</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "San Francisco", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f7;
+            color: #1d1d1f;
+            line-height: 1.6;
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #d2d2d7;
+        }
+
+        .nav-container a {
+            color: #1d1d1f;
+            text-decoration: none;
+            margin: 0 15px;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-container a:hover {
+            color: #0071e3; /* Apple's signature blue */
+        }
+
+        .nav-container a.active {
+            color: #0071e3;
+            font-weight: 600;
+        }
+
+        .container {
+            width: 80%;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            text-align: center;
+            font-weight: 600;
+            margin-bottom: 30px;
+        }
+
+        .export-btn {
+            background-color: #0071e3;
+            color: #ffffff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            margin-bottom: 20px;
+            transition: background 0.3s;
+        }
+
+        .export-btn:hover {
+            background-color: #005bb5;
+        }
+
+        .table-container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background-color: #f5f5f5;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                width: 95%;
+                padding: 20px 10px;
+            }
+
+            th, td {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="nav-container">
+        <a href="index.html">Real-time</a>
+        <a href="chart.html">Chart</a>
+        <a href="history.html" class="active">History</a>
+    </div>
+
+    <div class="container">
+        <h1>Temperature History</h1>
+        <button class="export-btn" onclick="exportData()">Export to Excel</button>
+        
+        <div class="table-container">
+            <table id="tempTable">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Temperature (°C)</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let temperatureHistory = [];
+        const API_URL = 'http://YOUR_PI_IP:5000/api/sensor-data';  // Replace YOUR_PI_IP with your Pi's IP address
+    
+        function updateTable() {
+            fetch(API_URL)
+                .then(response => response.json())
+                .then(data => {
+                    const time = new Date().toLocaleTimeString();
+                    
+                    if (data.error) {
+                        console.error('Sensor error:', data.error);
+                        temperatureHistory.unshift({
+                            time: time,
+                            temperature: 'Error',
+                            error: data.error
+                        });
+                    } else {
+                        temperatureHistory.unshift({
+                            time: time,
+                            temperature: data.temperature.toFixed(1)
+                        });
+                    }
+    
+                    if (temperatureHistory.length > 60) {
+                        temperatureHistory.pop();
+                    }
+    
+                    displayData();
+                })
+                .catch(error => {
+                    console.error('Connection error:', error);
+                    const time = new Date().toLocaleTimeString();
+                    temperatureHistory.unshift({
+                        time: time,
+                        temperature: 'Connection Error'
+                    });
+                    displayData();
+                });
+        }
+    
+        function displayData() {
+            const tbody = document.querySelector('#tempTable tbody');
+            tbody.innerHTML = temperatureHistory.map(reading => `
+                <tr>
+                    <td>${reading.time}</td>
+                    <td>${reading.error ? 'Error' : reading.temperature + '°C'}</td>
+                </tr>
+            `).join('');
+        }
+    
+        function exportData() {
+            const exportData = [
+                ['Time', 'Temperature (°C)', 'Status'],
+                ...temperatureHistory.map(reading => [
+                    reading.time,
+                    reading.error ? '' : reading.temperature,
+                    reading.error ? 'Error' : 'OK'
+                ])
+            ];
+    
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(exportData);
+            XLSX.utils.book_append_sheet(wb, ws, "Temperature Data");
+    
+            const fileName = `temperature_data_${new Date().toLocaleDateString().replace(/\//g, '-')}_${new Date().toLocaleTimeString().replace(/:/g, '-')}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+        }
+    
+        updateTable();
+        setInterval(updateTable, 60000); // Update every minute
+    </script>
+</body>
+</html>
