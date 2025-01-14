@@ -16,9 +16,7 @@
 
         body {
             background: linear-gradient(to bottom, #1a1a1d, #0a0a0c) fixed;
-            overflow: hidden;
             color: #e0e0e0;
-            line-height: 1.6;
         }
 
         .aurora {
@@ -50,87 +48,53 @@
 
         .nav-container a:hover, .nav-container a.active {
             color: #00e5ff;
-            font-weight: 600;
         }
 
         .container {
-            width: 80%;
-            max-width: 1400px;
-            margin: 50px auto;
-            padding: 20px;
+            width: 90%;
+            max-width: 1200px;
+            margin: 40px auto;
         }
 
         h1 {
-            font-size: 2.5rem;
             text-align: center;
-            font-weight: 600;
             color: #ffffff;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
 
         .chart-container {
-            background-color: rgba(28, 28, 30, 0.8);
-            border-radius: 20px;
+            background: rgba(28, 28, 30, 0.8);
             padding: 20px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
-            margin-bottom: 30px;
-            height: 500px;
-            position: relative;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
+            height: 400px;
         }
 
         canvas {
-            display: block;
             max-width: 100%;
-            height: 100% !important;
+            height: 100%;
         }
 
         .time-range {
             display: flex;
             justify-content: center;
             gap: 10px;
-            margin-bottom: 20px;
+            margin-top: 20px;
         }
 
         .time-range button {
-            padding: 8px 16px;
-            border: 1px solid #3c3c3e;
-            border-radius: 8px;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
             background: #1a1a1d;
-            color: #ffffff;
+            color: white;
             cursor: pointer;
-            transition: background 0.3s, border-color 0.3s;
             font-weight: 500;
         }
 
-        .time-range button:hover {
-            background: rgba(0, 113, 227, 0.7);
-        }
-
-        .time-range button.active {
+        .time-range button:hover, .time-range button.active {
             background: #00e5ff;
             color: #000;
-            border-color: #00e5ff;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                width: 95%;
-                padding: 20px 10px;
-            }
-
-            h1 {
-                font-size: 2rem;
-            }
-
-            .chart-container {
-                padding: 15px;
-                height: 400px;
-            }
-
-            .time-range button {
-                font-size: 0.9rem;
-                padding: 6px 12px;
-            }
         }
     </style>
 </head>
@@ -145,7 +109,6 @@
 
     <div class="container">
         <h1>Temperature Chart</h1>
-        
         <div class="chart-container">
             <canvas id="sensorChart"></canvas>
         </div>
@@ -161,75 +124,51 @@
         let chart;
         let maxDataPoints = 60;
 
-        function initChart() {
+        function initializeChart() {
             const ctx = document.getElementById('sensorChart').getContext('2d');
             chart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: [],
                     datasets: [{
-                        label: 'Temperature',
+                        label: 'Temperature (°C)',
                         data: [],
                         borderColor: '#00e5ff',
-                        backgroundColor: 'rgba(0, 229, 255, 0.1)',
+                        backgroundColor: 'rgba(0, 229, 255, 0.2)',
                         borderWidth: 2,
                         fill: true,
-                        tension: 0.3,
-                        pointRadius: 0,
-                        pointHoverRadius: 5
+                        tension: 0.4,
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            mode: 'nearest',
-                            intersect: false,
-                            backgroundColor: '#2e2e30',
-                            titleColor: '#00e5ff',
-                            bodyColor: '#ffffff',
-                            padding: 10,
-                            displayColors: false
-                        }
+                        legend: { display: false },
+                        tooltip: { displayColors: false }
                     },
                     scales: {
                         y: {
-                            beginAtZero: false,
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#ffffff',
-                                callback: function(value) {
-                                    return value + '°C';
-                                }
-                            }
+                            ticks: { color: '#ffffff', callback: val => val + '°C' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
                         },
                         x: {
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                color: '#ffffff',
-                                maxTicksLimit: 10
-                            }
+                            ticks: { color: '#ffffff' },
+                            grid: { display: false }
                         }
                     }
                 }
             });
         }
 
-        async function updateData() {
+        async function fetchDataAndUpdate() {
             try {
                 const response = await fetch('/api/sensor-data');
-                const data = await response.json();
-                const timestamp = new Date().toLocaleTimeString();
-                const temperature = data.temperature;
+                if (!response.ok) throw new Error('Failed to fetch data');
+                const { temperature } = await response.json();
+                if (typeof temperature !== 'number') throw new Error('Invalid data format');
 
+                const timestamp = new Date().toLocaleTimeString();
                 chart.data.labels.push(timestamp);
                 chart.data.datasets[0].data.push(temperature);
 
@@ -240,23 +179,21 @@
 
                 chart.options.scales.y.min = Math.min(...chart.data.datasets[0].data) - 2;
                 chart.options.scales.y.max = Math.max(...chart.data.datasets[0].data) + 2;
-
                 chart.update();
             } catch (error) {
-                console.error('Error fetching data:', error);
+                console.error(error.message);
             }
         }
 
-        initChart();
-        updateData();
-        const updateInterval = setInterval(updateData, 1000);
+        initializeChart();
+        fetchDataAndUpdate();
+        const updateInterval = setInterval(fetchDataAndUpdate, 1000);
 
         document.querySelectorAll('.time-range button').forEach(button => {
-            button.addEventListener('click', function() {
-                document.querySelectorAll('.time-range button').forEach(b => b.classList.remove('active'));
+            button.addEventListener('click', function () {
+                document.querySelector('.time-range .active').classList.remove('active');
                 this.classList.add('active');
-
-                maxDataPoints = parseInt(this.getAttribute('data-range'), 10);
+                maxDataPoints = parseInt(this.dataset.range, 10);
                 chart.data.labels = [];
                 chart.data.datasets[0].data = [];
                 chart.update();
