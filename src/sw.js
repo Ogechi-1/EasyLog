@@ -1,3 +1,4 @@
+importScripts("https://progressier.app/K1HcUfeZ8YMI6DaytDTw/sw.js" );
 const CACHE_NAME = 'easytemp-v1';
 const urlsToCache = [
   '/',
