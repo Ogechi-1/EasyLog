@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Temperature Monitor</title>
+    <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
     <link rel="manifest" href="https://progressier.app/K1HcUfeZ8YMI6DaytDTw/progressier.json"/><script defer src="https://progressier.app/K1HcUfeZ8YMI6DaytDTw/script.js"></script> 
     <style>
@@ -26,9 +27,67 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: url('https://example.com/aurora.gif') center center / cover no-repeat;
-            opacity: 0.3;
             pointer-events: none;
+            z-index: 1000;
+        }
+
+        .aurora-beam {
+            position: absolute;
+            width: 40px;
+            height: 400px;
+            filter: blur(30px);
+            animation: flow 20s linear infinite;
+            transform-origin: center;
+            opacity: 0;
+        }
+
+        .aurora-beam:nth-child(1) {
+            background: linear-gradient(180deg, #00ff8866, #00ff8800);
+            top: 0;
+            left: 20%;
+            animation-delay: 0s;
+        }
+
+        .aurora-beam:nth-child(2) {
+            background: linear-gradient(180deg, #00ffee66, #00ffee00);
+            top: -100px;
+            left: 40%;
+            animation-delay: -5s;
+        }
+
+        .aurora-beam:nth-child(3) {
+            background: linear-gradient(180deg, #ff00ff66, #ff00ff00);
+            top: -50px;
+            left: 60%;
+            animation-delay: -10s;
+        }
+
+        .aurora-beam:nth-child(4) {
+            background: linear-gradient(180deg, #00ff8866, #00ff8800);
+            top: -75px;
+            left: 80%;
+            animation-delay: -15s;
+        }
+
+        @keyframes flow {
+            0% {
+                transform: translateY(-100%) rotate(-20deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.8;
+            }
+            40% {
+                opacity: 0.5;
+            }
+            50% {
+                transform: translateY(100vh) rotate(20deg);
+                opacity: 0.3;
+            }
+            100% {
+                transform: translateY(100vh) rotate(20deg);
+                opacity: 0;
+            }
         }
 
         .nav-container {
@@ -132,7 +191,12 @@
     </style>
 </head>
 <body>
-    <div class="aurora"></div>
+    <div class="aurora">
+        <div class="aurora-beam"></div>
+        <div class="aurora-beam"></div>
+        <div class="aurora-beam"></div>
+        <div class="aurora-beam"></div>
+    </div>
 
     <div class="nav-container">
         <a href="index.html" class="active">Real-time</a>
