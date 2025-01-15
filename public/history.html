@@ -6,7 +6,6 @@
     <title>Temperature History</title>
     <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
-    <link rel="manifest" href="https://progressier.app/K1HcUfeZ8YMI6DaytDTw/progressier.json"/><script defer src="https://progressier.app/K1HcUfeZ8YMI6DaytDTw/script.js"></script> 
     <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
     <style>
         * {
@@ -92,10 +91,28 @@
         }
 
         .nav-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
             display: flex;
-            justify-content: center;
-            padding: 20px 0;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            background-color: rgba(28, 28, 30, 0.95);
+            z-index: 1001;
+        }
+
+        .nav-logo {
+            height: 40px;
+            width: auto;
+            display: block;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
         }
 
         .nav-container a {
@@ -114,7 +131,7 @@
         .container {
             width: 80%;
             max-width: 1200px;
-            margin: 50px auto;
+            margin: 120px auto;
             padding: 20px;
         }
 
@@ -124,6 +141,7 @@
             font-weight: 600;
             margin-bottom: 30px;
             color: #ffffff;
+            padding: 0 20px;
         }
 
         .export-btn {
@@ -186,6 +204,80 @@
                 font-size: 2rem;
             }
         }
+
+        .splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #1c1c1e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.3s ease-out;
+        }
+
+        .splash-logo-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .splash-logo {
+            height: 100px;
+            width: auto;
+            animation: scaleUp 1s ease-in-out;
+        }
+
+        @keyframes scaleUp {
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            20% {
+                transform: scale(1.05);
+                opacity: 0.9;
+            }
+            40% {
+                transform: scale(0.95);
+                opacity: 1;
+            }
+            60% {
+                transform: scale(1.02);
+            }
+            80% {
+                transform: scale(0.98);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .splash-hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .time-filter {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .time-select {
+            padding: 10px 20px;
+            border-radius: 8px;
+            background-color: rgba(40, 40, 42, 1);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .time-select:hover {
+            background-color: rgba(60, 60, 62, 1);
+        }
     </style>
 </head>
 <body>
@@ -196,14 +288,32 @@
         <div class="aurora-beam"></div>
     </div>
 
+    <div class="splash-screen" id="splashScreen">
+        <div class="splash-logo-container">
+            <img src="icons/icons/icon512_maskable.png" alt="" class="splash-logo">
+        </div>
+    </div>
+
     <div class="nav-container">
-        <a href="index.html">Real-time</a>
-        <a href="chart.html">Chart</a>
-        <a href="history.html" class="active">History</a>
+        <img src="icons/icons/icon512_maskable.png" alt="" class="nav-logo">
+        <div class="nav-links">
+            <a href="index.html">Real-time</a>
+            <a href="chart.html">Chart</a>
+            <a href="history.html" class="active">History</a>
+        </div>
     </div>
 
     <div class="container">
         <h1>Temperature History</h1>
+        <div class="time-filter">
+            <select id="timeRange" class="time-select">
+                <option value="60">Last Hour</option>
+                <option value="360">Last 6 Hours</option>
+                <option value="720">Last 12 Hours</option>
+                <option value="1440">Last 24 Hours</option>
+                <option value="10080">Last Week</option>
+            </select>
+        </div>
         <button class="export-btn" onclick="exportData()">Export to Excel</button>
         
         <div class="table-container">
@@ -221,7 +331,6 @@
 
     <script>
         const API_URL = 'http://YOUR_PI_IP:5000/api/sensor-data'; // Replace YOUR_PI_IP with your Pi's IP address
-        const MAX_HISTORY = 60;
         let temperatureHistory = [];
 
         async function fetchTemperatureData() {
@@ -231,22 +340,37 @@
                 
                 const data = await response.json();
                 const time = new Date().toLocaleTimeString();
+                const timestamp = new Date().getTime();
                 
                 if (data.temperature) {
-                    temperatureHistory.unshift({ time, temperature: data.temperature.toFixed(1) });
+                    temperatureHistory.unshift({ 
+                        time, 
+                        timestamp,
+                        temperature: data.temperature.toFixed(1) 
+                    });
                 } else {
-                    temperatureHistory.unshift({ time, temperature: 'Error', error: data.error });
+                    temperatureHistory.unshift({ 
+                        time, 
+                        timestamp,
+                        temperature: 'Error', 
+                        error: data.error 
+                    });
                 }
 
-                if (temperatureHistory.length > MAX_HISTORY) {
-                    temperatureHistory.pop();
-                }
+                // Keep only data within selected time range
+                const timeRange = parseInt(document.getElementById('timeRange').value);
+                const cutoffTime = new Date().getTime() - (timeRange * 60 * 1000);
+                temperatureHistory = temperatureHistory.filter(entry => entry.timestamp >= cutoffTime);
 
                 updateTable();
             } catch (error) {
                 console.error('Error fetching data:', error);
                 const time = new Date().toLocaleTimeString();
-                temperatureHistory.unshift({ time, temperature: 'Connection Error' });
+                temperatureHistory.unshift({ 
+                    time, 
+                    timestamp: new Date().getTime(),
+                    temperature: 'Connection Error' 
+                });
                 updateTable();
             }
         }
@@ -262,6 +386,7 @@
         }
 
         function exportData() {
+            const timeRange = document.getElementById('timeRange').value;
             const exportData = [
                 ['Time', 'Temperature (°C)', 'Status'],
                 ...temperatureHistory.map(entry => [
@@ -275,13 +400,32 @@
             const worksheet = XLSX.utils.aoa_to_sheet(exportData);
             XLSX.utils.book_append_sheet(workbook, worksheet, 'Temperature History');
             
-            const filename = `Temperature_History_${new Date().toISOString().replace(/[-:.]/g, '')}.xlsx`;
+            const now = new Date();
+            const filename = `Temperature_History_${timeRange}min_${now.toISOString().replace(/[-:.]/g, '')}.xlsx`;
             XLSX.writeFile(workbook, filename);
         }
 
-        // Fetch data initially and at intervals
+        // Event listener for time range changes
+        document.getElementById('timeRange').addEventListener('change', () => {
+            const timeRange = parseInt(document.getElementById('timeRange').value);
+            const cutoffTime = new Date().getTime() - (timeRange * 60 * 1000);
+            temperatureHistory = temperatureHistory.filter(entry => entry.timestamp >= cutoffTime);
+            updateTable();
+        });
+
+        // Fetch data initially and every minute
         fetchTemperatureData();
-        setInterval(fetchTemperatureData, 60000);
+        setInterval(fetchTemperatureData, 60000); // Every minute
+
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                const splash = document.getElementById('splashScreen');
+                splash.classList.add('splash-hidden');
+                setTimeout(() => {
+                    splash.style.display = 'none';
+                }, 300);
+            }, 1500);
+        });
     </script>
 </body>
 </html>

@@ -6,7 +6,6 @@
     <title>Temperature Monitor</title>
     <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
-    <link rel="manifest" href="https://progressier.app/K1HcUfeZ8YMI6DaytDTw/progressier.json"/><script defer src="https://progressier.app/K1HcUfeZ8YMI6DaytDTw/script.js"></script> 
     <style>
         * {
             margin: 0;
@@ -92,9 +91,23 @@
 
         .nav-container {
             display: flex;
-            justify-content: center;
-            padding: 20px 0;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            background-color: rgba(28, 28, 30, 0.8);
+            z-index: 1001;
+        }
+
+        .nav-logo {
+            height: 40px;
+            width: auto;
+            display: block;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
         }
 
         .nav-container a {
@@ -188,6 +201,61 @@
                 font-size: 3.5rem;
             }
         }
+
+        .splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #1c1c1e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.3s ease-out;
+        }
+
+        .splash-logo-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .splash-logo {
+            height: 100px;
+            width: auto;
+            animation: scaleUp 1s ease-in-out;
+        }
+
+        @keyframes scaleUp {
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            20% {
+                transform: scale(1.05);
+                opacity: 0.9;
+            }
+            40% {
+                transform: scale(0.95);
+                opacity: 1;
+            }
+            60% {
+                transform: scale(1.02);
+            }
+            80% {
+                transform: scale(0.98);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .splash-hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -198,10 +266,19 @@
         <div class="aurora-beam"></div>
     </div>
 
+    <div class="splash-screen" id="splashScreen">
+        <div class="splash-logo-container">
+            <img src="icons/icons/icon512_maskable.png" alt="" class="splash-logo">
+        </div>
+    </div>
+
     <div class="nav-container">
-        <a href="index.html" class="active">Real-time</a>
-        <a href="chart.html">Chart</a>
-        <a href="history.html">History</a>
+        <img src="icons/icons/icon512_maskable.png" alt="" class="nav-logo">
+        <div class="nav-links">
+            <a href="index.html" class="active">Real-time</a>
+            <a href="chart.html">Chart</a>
+            <a href="history.html">History</a>
+        </div>
     </div>
 
     <div class="container">
@@ -269,6 +346,16 @@
     
         updateData();
         setInterval(updateData, 5000);
+
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                const splash = document.getElementById('splashScreen');
+                splash.classList.add('splash-hidden');
+                setTimeout(() => {
+                    splash.style.display = 'none';
+                }, 300);
+            }, 1500); // Reduced to 1.5 seconds for better UX
+        });
     </script>
 </body>
 </html>
