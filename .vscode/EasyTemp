@@ -14,8 +14,8 @@
 const char* ssid = "YOUR_SSID"; // Replace with your WiFi SSID
 const char* password = "YOUR_PASSWORD"; // Replace with your WiFi password
 
-// Server endpoint
-const char* serverUrl = "http://YOUR_SERVER_IP:5000/api/sensor-data"; // Replace with your server URL
+// Vercel API endpoint
+const char* serverUrl = "https://your-project-name.vercel.app/api/temperature"; // Update with your Vercel URL
 
 // Create RTC and MAX31855 objects
 RTC_DS3231 rtc; // RTC object
@@ -93,6 +93,8 @@ void sendTemperatureData(double temperature) {
 
     // Create JSON payload
     String jsonPayload = "{\"temperature\": " + String(temperature) + "}";
+    Serial.print("Sending JSON: ");
+    Serial.println(jsonPayload); // Print the JSON payload for debugging
 
     int httpResponseCode = http.POST(jsonPayload); // Send the request
 
