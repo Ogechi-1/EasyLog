@@ -307,85 +307,55 @@
     
     <script>
         let temperatures = [];
-        const socket = new WebSocket('ws://192.168.1.106:81');  // Update with the IP of your ESP32
-
-        socket.onopen = () => {
-            console.log("Connected to WebSocket server");
-            hideSplashScreen(); // Hide splash screen on successful connection
-        };
-
-        socket.onmessage = (event) => {
-            console.log("Message received:", event.data); // Log received messages
-            const data = event.data;  // Receive data from the WebSocket server
-
-            // Example data: 2025-01-19 14:30:25 - Temperature: 25.45 °C
-            const parts = data.split(" - ");
-            if (parts.length < 2) {
-                console.error("Invalid data format:", data);
-                return; // Exit if data format is incorrect
-            }
-            const timestamp = parts[0];
-            const tempStr = parts[1].replace('Temperature: ', '');
-
-            const temperature = parseFloat(tempStr);
-            if (isNaN(temperature)) {
-                console.error("Invalid temperature value:", tempStr);
-                return; // Exit if temperature is not a number
-            }
-
-            document.getElementById('temperature').textContent = `${temperature.toFixed(1)}°C`;
-            document.getElementById('timestamp').textContent = `Last updated: ${timestamp}`;
-
-            temperatures.push(temperature);
-            if (temperatures.length > 1440) {
-                temperatures.shift();
-            }
-
-            const max = Math.max(...temperatures);
-            const min = Math.min(...temperatures);
-            const avg = temperatures.reduce((a, b) => a + b, 0) / temperatures.length;
-
-            document.getElementById('maxTemp').textContent = `${max.toFixed(1)}°C`;
-            document.getElementById('minTemp').textContent = `${min.toFixed(1)}°C`;
-            document.getElementById('avgTemp').textContent = `${avg.toFixed(1)}°C`;
-        };
-
-        socket.onerror = (error) => {
-            console.error("WebSocket error:", error);
-            hideSplashScreen(); // Hide splash screen on error
-        };
-
-        socket.onclose = () => {
-            console.log("Disconnected from WebSocket server");
-            hideSplashScreen(); // Hide splash screen on close
-        };
-
-        function hideSplashScreen() {
-            const splash = document.getElementById('splashScreen');
-            splash.classList.add('splash-hidden');
-            setTimeout(() => {
-                splash.style.display = 'none';
-            }, 300);
+        const API_URL = 'http://192.168.1.106:5000/api/sensor-data';  // Replace YOUR_PI_IP with your Pi's IP address
+        
+        function updateData() {
+            fetch(API_URL)
+                .then(response => response.json())
+                .then(data => {
+                    const timestamp = new Date().toLocaleTimeString();
+                    const tempElement = document.getElementById('temperature');
+                    
+                    if (data.error) {
+                        tempElement.textContent = 'Error reading sensor';
+                        console.error('Sensor error:', data.error);
+                        return;
+                    }
+    
+                    tempElement.textContent = `${data.temperature.toFixed(1)}°C`;
+                    document.getElementById('timestamp').textContent = `Last updated: ${timestamp}`;
+    
+                    temperatures.push(data.temperature);
+                    if (temperatures.length > 1440) {
+                        temperatures.shift();
+                    }
+    
+                    const max = Math.max(...temperatures);
+                    const min = Math.min(...temperatures);
+                    const avg = temperatures.reduce((a, b) => a + b, 0) / temperatures.length;
+    
+                    document.getElementById('maxTemp').textContent = `${max.toFixed(1)}°C`;
+                    document.getElementById('minTemp').textContent = `${min.toFixed(1)}°C`;
+                    document.getElementById('avgTemp').textContent = `${avg.toFixed(1)}°C`;
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                    document.getElementById('temperature').textContent = 'Connection Error';
+                });
         }
+    
+        updateData();
+        setInterval(updateData, 5000);
 
         window.addEventListener('load', function() {
             setTimeout(() => {
-                console.log("Hiding splash screen after timeout");
-                hideSplashScreen(); // Ensure splash screen is hidden after timeout
+                const splash = document.getElementById('splashScreen');
+                splash.classList.add('splash-hidden');
+                setTimeout(() => {
+                    splash.style.display = 'none';
+                }, 300);
             }, 1500); // Reduced to 1.5 seconds for better UX
         });
-
-        // Always hide splash screen after a timeout
-        setTimeout(() => {
-            if (splashScreenVisible()) {
-                console.log("Timeout reached, hiding splash screen");
-                hideSplashScreen();
-            }
-        }, 5000); // 5 seconds timeout for splash screen
-
-        function splashScreenVisible() {
-            return document.getElementById('splashScreen').style.display !== 'none';
-        }
     </script>
 </body>
 </html>

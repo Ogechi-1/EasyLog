@@ -330,19 +330,15 @@
     </div>
 
     <script>
-        const WS_URL = 'ws://192.168.1.106:81'; // Example: wss://1234-56-78-90.ngrok.io
-        let ws;
+        const API_URL = 'http://YOUR_PI_IP:5000/api/sensor-data'; // Replace YOUR_PI_IP with your Pi's IP address
         let temperatureHistory = [];
 
-        function connectWebSocket() {
-            ws = new WebSocket(WS_URL);
-            
-            ws.onopen = () => {
-                console.log('WebSocket connected');
-            };
-
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
+        async function fetchTemperatureData() {
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error('Failed to fetch data');
+                
+                const data = await response.json();
                 const time = new Date().toLocaleTimeString();
                 const timestamp = new Date().getTime();
                 
@@ -367,12 +363,16 @@
                 temperatureHistory = temperatureHistory.filter(entry => entry.timestamp >= cutoffTime);
 
                 updateTable();
-            };
-
-            ws.onclose = () => {
-                console.log('WebSocket disconnected. Reconnecting...');
-                setTimeout(connectWebSocket, 5000);
-            };
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                const time = new Date().toLocaleTimeString();
+                temperatureHistory.unshift({ 
+                    time, 
+                    timestamp: new Date().getTime(),
+                    temperature: 'Connection Error' 
+                });
+                updateTable();
+            }
         }
 
         function updateTable() {
@@ -414,7 +414,8 @@
         });
 
         // Fetch data initially and every minute
-        connectWebSocket();
+        fetchTemperatureData();
+        setInterval(fetchTemperatureData, 60000); // Every minute
 
         window.addEventListener('load', function() {
             setTimeout(() => {

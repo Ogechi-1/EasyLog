@@ -2,7 +2,6 @@
 #include <Wire.h>
 #include <Adafruit_MAX31855.h>
 #include <RTClib.h>
-#include <WebSocketsServer.h> // Include WebSocket library
 
 // Pin definitions for MAX31855
 #define MAX31855_CLK 10
@@ -12,7 +11,6 @@
 // Create RTC and MAX31855 objects
 RTC_DS3231 rtc; // RTC object
 Adafruit_MAX31855 thermocouple(MAX31855_CLK, MAX31855_CS, MAX31855_DO); // MAX31855 object
-WebSocketsServer webSocket = WebSocketsServer(81); // Create WebSocket server on port 81
 
 void setup() {
   Serial.begin(9600);
@@ -31,27 +29,40 @@ void setup() {
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__))); // Set the RTC to the date & time this sketch was compiled
   }
 
-  webSocket.begin(); // Start WebSocket server
   Serial.println("Initialization complete.");
 }
 
 void loop() {
-  webSocket.loop(); // Handle WebSocket connections
-
   // Read temperature
   double temperature = thermocouple.readCelsius();
   
   // Get current date and time
   DateTime now = rtc.now();
 
-  // Prepare data to send
-  String data = String(now.year()) + "-" + String(now.month()) + "-" + String(now.day()) + " " +
-                String(now.hour()) + ":" + (now.minute() < 10 ? "0" : "") + String(now.minute()) + ":" +
-                (now.second() < 10 ? "0" : "") + String(now.second()) + " - Temperature: " +
-                (isnan(temperature) ? "Error" : String(temperature, 2) + " °C");
-
-  // Send data to WebSocket clients
-  webSocket.broadcastTXT(data);
+  // Print timestamp and temperature
+  Serial.print("Timestamp: ");
+  Serial.print(now.year(), DEC);
+  Serial.print('/');
+  Serial.print(now.month(), DEC);
+  Serial.print('/');
+  Serial.print(now.day(), DEC);
+  Serial.print(' ');
+  Serial.print(now.hour(), DEC);
+  Serial.print(':');
+  if (now.minute() < 10) Serial.print('0');
+  Serial.print(now.minute(), DEC);
+  Serial.print(':');
+  if (now.second() < 10) Serial.print('0');
+  Serial.print(now.second(), DEC);
+  Serial.print(" - Temperature: ");
+  
+  if (!isnan(temperature)) {
+    Serial.print(temperature, 2);
+    Serial.println(" °C");
+  } else {
+    Serial.print("Error reading temperature. Error code: ");
+    Serial.println(thermocouple.readError()); // Prints specific error code
+  }
 
   delay(5000); // Wait for 5 seconds before the next reading
 }
