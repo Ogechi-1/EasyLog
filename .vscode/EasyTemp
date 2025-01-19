@@ -1,0 +1,57 @@
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_MAX31855.h>
+#include <RTClib.h>
+#include <WebSocketsServer.h> // Include WebSocket library
+
+// Pin definitions for MAX31855
+#define MAX31855_CLK 10
+#define MAX31855_CS 13
+#define MAX31855_DO 11
+
+// Create RTC and MAX31855 objects
+RTC_DS3231 rtc; // RTC object
+Adafruit_MAX31855 thermocouple(MAX31855_CLK, MAX31855_CS, MAX31855_DO); // MAX31855 object
+WebSocketsServer webSocket = WebSocketsServer(81); // Create WebSocket server on port 81
+
+void setup() {
+  Serial.begin(9600);
+  while (!Serial) delay(10); // Wait for Serial to initialize
+
+  // Initialize RTC
+  Wire.begin(); // No parameters needed for Wire.begin()
+  if (!rtc.begin()) {
+    Serial.println("Couldn't find RTC");
+    while (1);
+  }
+
+  // Check if RTC lost power
+  if (rtc.lostPower()) {
+    Serial.println("RTC lost power, setting the time!");
+    rtc.adjust(DateTime(F(__DATE__), F(__TIME__))); // Set the RTC to the date & time this sketch was compiled
+  }
+
+  webSocket.begin(); // Start WebSocket server
+  Serial.println("Initialization complete.");
+}
+
+void loop() {
+  webSocket.loop(); // Handle WebSocket connections
+
+  // Read temperature
+  double temperature = thermocouple.readCelsius();
+  
+  // Get current date and time
+  DateTime now = rtc.now();
+
+  // Prepare data to send
+  String data = String(now.year()) + "-" + String(now.month()) + "-" + String(now.day()) + " " +
+                String(now.hour()) + ":" + (now.minute() < 10 ? "0" : "") + String(now.minute()) + ":" +
+                (now.second() < 10 ? "0" : "") + String(now.second()) + " - Temperature: " +
+                (isnan(temperature) ? "Error" : String(temperature, 2) + " °C");
+
+  // Send data to WebSocket clients
+  webSocket.broadcastTXT(data);
+
+  delay(5000); // Wait for 5 seconds before the next reading
+}
