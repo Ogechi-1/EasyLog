@@ -21,6 +21,9 @@ const char* serverUrl = "https://vercel.com/ogechi-1s-projects/easytemp/6eHK5xNp
 RTC_DS3231 rtc; // RTC object
 Adafruit_MAX31855 thermocouple(MAX31855_CLK, MAX31855_CS, MAX31855_DO); // MAX31855 object
 
+unsigned long lastSendTime = 0; // Variable to store the last time data was sent
+const unsigned long sendInterval = 10000; // 10 seconds in milliseconds
+
 void setup() {
   Serial.begin(9600);
   while (!Serial) delay(10); // Wait for Serial to initialize
@@ -49,36 +52,45 @@ void loop() {
     connectToWiFi(); // Attempt to reconnect if disconnected
   }
 
-  // Read temperature
-  double temperature = thermocouple.readCelsius();
-  
-  // Get current date and time
-  DateTime now = rtc.now();
+  // Get the current time
+  unsigned long currentTime = millis();
 
-  // Print timestamp and temperature
-  Serial.print("Timestamp: ");
-  Serial.print(now.year(), DEC);
-  Serial.print('/');
-  Serial.print(now.month(), DEC);
-  Serial.print('/');
-  Serial.print(now.day(), DEC);
-  Serial.print(' ');
-  Serial.print(now.hour(), DEC);
-  Serial.print(':');
-  if (now.minute() < 10) Serial.print('0');
-  Serial.print(now.minute(), DEC);
-  Serial.print(':');
-  if (now.second() < 10) Serial.print('0');
-  Serial.print(now.second(), DEC);
-  Serial.print(" - Temperature: ");
-  
-  if (!isnan(temperature)) {
-    Serial.print(temperature, 2);
-    Serial.println(" °C");
-    sendTemperatureData(temperature); // Send temperature data to server
-  } else {
-    Serial.print("Error reading temperature. Error code: ");
-    Serial.println(thermocouple.readError()); // Prints specific error code
+  // Check if 10 seconds have passed since the last send
+  if (currentTime - lastSendTime >= sendInterval) {
+    // Read temperature
+    double temperature = thermocouple.readCelsius();
+    
+    // Get current date and time
+    DateTime now = rtc.now();
+
+    // Print timestamp and temperature
+    Serial.print("Timestamp: ");
+    Serial.print(now.year(), DEC);
+    Serial.print('/');
+    Serial.print(now.month(), DEC);
+    Serial.print('/');
+    Serial.print(now.day(), DEC);
+    Serial.print(' ');
+    Serial.print(now.hour(), DEC);
+    Serial.print(':');
+    if (now.minute() < 10) Serial.print('0');
+    Serial.print(now.minute(), DEC);
+    Serial.print(':');
+    if (now.second() < 10) Serial.print('0');
+    Serial.print(now.second(), DEC);
+    Serial.print(" - Temperature: ");
+    
+    if (!isnan(temperature)) {
+      Serial.print(temperature, 2);
+      Serial.println(" °C");
+      sendTemperatureData(temperature); // Send temperature data to server
+    } else {
+      Serial.print("Error reading temperature. Error code: ");
+      Serial.println(thermocouple.readError()); // Prints specific error code
+    }
+
+    // Update the last send time
+    lastSendTime = currentTime;
   }
 
   delay(5000); // Wait for 5 seconds before the next reading
