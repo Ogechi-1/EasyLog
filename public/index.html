@@ -311,6 +311,7 @@
 
         socket.onopen = () => {
             console.log("Connected to WebSocket server");
+            hideSplashScreen(); // Hide splash screen on successful connection
         };
 
         socket.onmessage = (event) => {
@@ -341,21 +342,33 @@
 
         socket.onerror = (error) => {
             console.error("WebSocket error:", error);
+            hideSplashScreen(); // Hide splash screen on error
         };
 
         socket.onclose = () => {
             console.log("Disconnected from WebSocket server");
+            hideSplashScreen(); // Hide splash screen on close
         };
+
+        function hideSplashScreen() {
+            const splash = document.getElementById('splashScreen');
+            splash.classList.add('splash-hidden');
+            setTimeout(() => {
+                splash.style.display = 'none';
+            }, 300);
+        }
 
         window.addEventListener('load', function() {
             setTimeout(() => {
-                const splash = document.getElementById('splashScreen');
-                splash.classList.add('splash-hidden');
-                setTimeout(() => {
-                    splash.style.display = 'none';
-                }, 300);
+                if (splashScreenVisible()) {
+                    hideSplashScreen(); // Ensure splash screen is hidden after timeout
+                }
             }, 1500); // Reduced to 1.5 seconds for better UX
         });
+
+        function splashScreenVisible() {
+            return document.getElementById('splashScreen').style.display !== 'none';
+        }
     </script>
 </body>
 </html>
