@@ -315,14 +315,24 @@
         };
 
         socket.onmessage = (event) => {
+            console.log("Message received:", event.data); // Log received messages
             const data = event.data;  // Receive data from the WebSocket server
 
             // Example data: 2025-01-19 14:30:25 - Temperature: 25.45 °C
             const parts = data.split(" - ");
+            if (parts.length < 2) {
+                console.error("Invalid data format:", data);
+                return; // Exit if data format is incorrect
+            }
             const timestamp = parts[0];
             const tempStr = parts[1].replace('Temperature: ', '');
 
             const temperature = parseFloat(tempStr);
+            if (isNaN(temperature)) {
+                console.error("Invalid temperature value:", tempStr);
+                return; // Exit if temperature is not a number
+            }
+
             document.getElementById('temperature').textContent = `${temperature.toFixed(1)}°C`;
             document.getElementById('timestamp').textContent = `Last updated: ${timestamp}`;
 
@@ -360,11 +370,18 @@
 
         window.addEventListener('load', function() {
             setTimeout(() => {
-                if (splashScreenVisible()) {
-                    hideSplashScreen(); // Ensure splash screen is hidden after timeout
-                }
+                console.log("Hiding splash screen after timeout");
+                hideSplashScreen(); // Ensure splash screen is hidden after timeout
             }, 1500); // Reduced to 1.5 seconds for better UX
         });
+
+        // Always hide splash screen after a timeout
+        setTimeout(() => {
+            if (splashScreenVisible()) {
+                console.log("Timeout reached, hiding splash screen");
+                hideSplashScreen();
+            }
+        }, 5000); // 5 seconds timeout for splash screen
 
         function splashScreenVisible() {
             return document.getElementById('splashScreen').style.display !== 'none';
