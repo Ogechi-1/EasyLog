@@ -2,11 +2,20 @@
 #include <Wire.h>
 #include <Adafruit_MAX31855.h>
 #include <RTClib.h>
+#include <WiFi.h> // Include WiFi library
+#include <HTTPClient.h> // Include HTTP client library
 
 // Pin definitions for MAX31855
 #define MAX31855_CLK 10
 #define MAX31855_CS 13
 #define MAX31855_DO 11
+
+// WiFi credentials
+const char* ssid = "YOUR_SSID"; // Replace with your WiFi SSID
+const char* password = "YOUR_PASSWORD"; // Replace with your WiFi password
+
+// Server endpoint
+const char* serverUrl = "http://YOUR_SERVER_IP:5000/api/sensor-data"; // Replace with your server URL
 
 // Create RTC and MAX31855 objects
 RTC_DS3231 rtc; // RTC object
@@ -15,6 +24,14 @@ Adafruit_MAX31855 thermocouple(MAX31855_CLK, MAX31855_CS, MAX31855_DO); // MAX31
 void setup() {
   Serial.begin(9600);
   while (!Serial) delay(10); // Wait for Serial to initialize
+
+  // Initialize WiFi
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Connecting to WiFi...");
+  }
+  Serial.println("Connected to WiFi");
 
   // Initialize RTC
   Wire.begin(); // No parameters needed for Wire.begin()
@@ -59,10 +76,37 @@ void loop() {
   if (!isnan(temperature)) {
     Serial.print(temperature, 2);
     Serial.println(" °C");
+    sendTemperatureData(temperature); // Send temperature data to server
   } else {
     Serial.print("Error reading temperature. Error code: ");
     Serial.println(thermocouple.readError()); // Prints specific error code
   }
 
   delay(5000); // Wait for 5 seconds before the next reading
+}
+
+void sendTemperatureData(double temperature) {
+  if (WiFi.status() == WL_CONNECTED) { // Check if WiFi is connected
+    HTTPClient http;
+    http.begin(serverUrl); // Specify the URL
+    http.addHeader("Content-Type", "application/json"); // Specify content-type header
+
+    // Create JSON payload
+    String jsonPayload = "{\"temperature\": " + String(temperature) + "}";
+
+    int httpResponseCode = http.POST(jsonPayload); // Send the request
+
+    if (httpResponseCode > 0) {
+      String response = http.getString(); // Get the response
+      Serial.println(httpResponseCode); // Print return code
+      Serial.println(response); // Print response
+    } else {
+      Serial.print("Error on sending POST: ");
+      Serial.println(httpResponseCode); // Print error code
+    }
+
+    http.end(); // Free resources
+  } else {
+    Serial.println("WiFi Disconnected");
+  }
 }
